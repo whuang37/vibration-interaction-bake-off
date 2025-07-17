@@ -116,7 +116,7 @@ class StreamReaderPyAudio:
         else:
             self.data_windows_to_buffer = int(data_windows_to_buffer)
 
-        self.data_buffer = numpy_data_buffer(self.data_windows_to_buffer, self.update_window_n_frames)
+        self.data_buffer = NPDataBuffer(self.data_windows_to_buffer, self.update_window_n_frames)
 
         print("\n-- Starting live audio stream...\n")
         self.stream.start_stream()
@@ -312,7 +312,7 @@ class StreamReaderSoundDevice:
         else:
             self.data_windows_to_buffer = int(data_windows_to_buffer)
 
-        self.data_buffer = numpy_data_buffer(self.data_windows_to_buffer, self.update_window_n_frames)
+        self.data_buffer = NPDataBuffer(self.data_windows_to_buffer, self.update_window_n_frames)
 
         print("\n--🎙  -- Starting live audio stream...\n")
         self.stream.start()

@@ -1,157 +1,72 @@
 import numpy as np
 import dearpygui.dearpygui as dpg
-# from stream_analyzer import StreamAnalyzer
+import pyaudio 
+from pathlib import Path
+from stream_analyzer import StreamAnalyzer
 
-# Placeholder ML functions (students should implement)
-def train_model(data_windows, labels, save_path):
-    # data_windows: list of `np.array` FFT vectors
-    # labels: list of strings
-    # save model to save_path
+Path("metadata/").mkdir(exist_ok=True)
+
+def training(data):
     pass
 
 def load_model(file_path):
-    # load and return a trained model
-    return None
+    pass
 
+def save_model(file_path):
+    pass
 
-def predict_model(model, fft_window):
-    # return predicted label for a single FFT window
-    return ""
+def get_ear(device):
+    return StreamAnalyzer(device=device, smoothing_length_ms=100)
 
-# -----------------------------------------------------------------------------
-# Initialize FFT stream
-# ear = StreamAnalyzer(verbose=False)
+def get_audio_features(ear):
+    freqs, amps, _, _ = ear.get_audio_features()
+    
+    return freqs, amps
 
-def cleanup():
-    # ear.stream_reader.stream_stop()
-    dpg.stop_dearpygui()
+def save_default_device(device_name):
+    with open('metadata/default_device.txt', "w") as f:
+        f.write(device_name)
+
+def load_default_device():
+    try:
+        with open('metadata/default_device.txt', "r") as f:
+            return f.read().strip()
+    except:
+        return None
+
+pa = pyaudio.PyAudio()
+device_list = []
+for i in range(pa.get_device_count()):
+    info = pa.get_device_info_by_index(i)
+    # Only include devices with at least one input channel
+    if info.get("maxInputChannels", 0) > 0:
+        device_list.append(info["name"]
+        )
+print(device_list)
+
+# load some default device saved
+default_device = ""
+default_device = device_list[0] if device_list else ""
+loaded_device = load_default_device()
+if loaded_device is not None:
+    if loaded_device in device_list:
+        default_device = loaded_device
+
+ear = get_ear(device=device_list.index(default_device))
 
 # Data storage for training
 collected_data = {}  # { class_name: [fft_windows, ...] }
+record_val = None
+recording_on = False
+
 model = None
 
-def make_dummy_spectrum(n_bins=512, peaks=[50, 150, 300], rate=1000):
-    """
-    Returns (freqs, amps) arrays.
-     - freqs: 0…rate/2
-     - amps: sum of a few Gaussian peaks + small noise
-    """
-    freqs = np.linspace(0, rate/2, n_bins)
-    amps = np.zeros_like(freqs)
-    for p in peaks:
-        amps += np.exp(-0.5 * ((freqs - p) / 5)**2) * 5
-    amps += 0.2 * np.random.rand(n_bins)
-    return freqs, amps
 
-def register_button(
-    label: str,
-    callback,
-    toggle: bool = False,
-    parent: str = "extension_panel",
-    tag: str = None
-):
-    """
-    Adds a button (or toggle button) to the given parent container.
-
-    • label    – text shown on the button
-    • callback – function to call on click; for toggles you’ll get an extra bool param
-    • toggle   – if True, creates a persistent toggle button
-    • parent   – DPG item tag under which the button is inserted
-    • tag      – optional unique tag for the new button
-
-    Example usage:
-      register_button("Say Hi", lambda: console_print("Hello!"))
-      register_button("Dark Mode", toggle=True,
-                      callback=lambda s,a,u: set_dark_mode(a))
-    """
-    # Ensure we have a unique tag
-    tag = tag or f"btn_{label.replace(' ', '_')}_{np.random.randint(1e6)}"
-
-    if toggle:
-        # create a boolean state and a toggle button
-        dpg.add_checkbox(label=label,
-                         tag=tag,
-                         parent=parent,
-                         callback=lambda s,a,u: callback(s, a, u))
-    else:
-        # normal momentary push button
-        dpg.add_button(label=label,
-                       tag=tag,
-                       parent=parent,
-                       callback=lambda s,a,u: callback())
-
-# -----------------------------------------------------------------------------
-# GUI setup
-
-# Start DearPyGui context
-dpg.create_context()
-dpg.create_viewport(title="FFT Trainer", width=900, height=600, resizable=True)
-
-with dpg.window(label="FFT Spectrum", tag="MainWin", width=600, height=400):
-    dpg.add_text("Real-time FFT Signal", bullet=True)
-    plot = dpg.add_plot(label="FFT Plot", height=-1, width=-1)
-    x_axis = dpg.add_plot_axis(dpg.mvXAxis, parent=plot, label="Frequency (Hz)")
-    y_axis = dpg.add_plot_axis(dpg.mvYAxis, parent=plot, label="Amplitude")
-    x_series = dpg.add_line_series([], [], label="FFT", parent=y_axis, tag="fft_series")
-
-with dpg.window(label="Controls", tag="CtrlWin", width=300, height=400, pos=(610, 0)):
-    # Mode switch
-    dpg.add_text("Mode:")
-    mode_combo = dpg.add_combo(items=["Train", "Infer"], default_value="Train", callback=lambda s,a,u: switch_mode(a), tag="mode")
-    dpg.add_separator()
-
-    # Train UI container
-    with dpg.group(tag="train_group"):
-        dpg.add_input_text(label="Class name", tag="class_input")
-        dpg.add_button(label="Add Class", callback=lambda: add_class(), tag="btn_add_class")
-        dpg.add_separator()
-        dpg.add_text("Classes & Data:", bullet=True)
-        dpg.add_child_window(width=280, height=200, tag="class_list")
-        dpg.add_separator()
-        dpg.add_button(label="Train Model", callback=lambda: on_train(), tag="btn_train")
-
-    # Infer UI container
-    with dpg.group(tag="infer_group", show=False):
-        dpg.add_button(label="Load Model", callback=lambda: on_load_model(), tag="btn_load")
-        dpg.add_text("Prediction:", bullet=True)
-        dpg.add_text("---", tag="pred_text")
-
-    dpg.add_button(label="Quit", callback=cleanup)
-
-with dpg.window(label="Console", width= 600, height=150, pos=(0,450)):
-    dpg.add_input_text(tag="console", multiline=True, height=-1, readonly=True, default_value="")
-
-with dpg.window(tag="extension_panel",
-                      label="Extensions",
-                      width=300, height=-1,
-                      no_title_bar=True):
-    dpg.add_text("Add-on Buttons:", bullet=True)
-
-
-# helper to append:
-def console_print(msg):
-    prev = dpg.get_value("console")
-    dpg.set_value("console", prev + msg + "\n")
-
-
-# File dialogs
-with dpg.file_dialog(label="Save Model", show=False, callback=lambda s,a,u: do_save(a['file_path_name']), tag="save_dialog", default_path="."):
-    dpg.add_button(label="Save", callback=lambda: None)
-
-with dpg.file_dialog(label="Load Model", show=False, callback=lambda s,a,u: do_load(a['file_path_name']), tag="load_dialog", default_path="."):
-    dpg.add_button(label="OK", callback=lambda: None)
-
-# -----------------------------------------------------------------------------
-# Callbacks and Helpers
-
-def switch_mode(selected):
-    if selected == "Train":
-        dpg.configure_item("train_group", show=True)
-        dpg.configure_item("infer_group", show=False)
-    else:
-        dpg.configure_item("train_group", show=False)
-        dpg.configure_item("infer_group", show=True)
-
+def device_select_callback(s, a, u):
+    device_idx = device_list.index(a)
+    save_default_device(a)
+    global ear
+    ear = get_ear(device=device_idx)
 
 def add_class():
     cls = dpg.get_value("class_input").strip()
@@ -161,83 +76,160 @@ def add_class():
         collected_data[cls] = []
         # Add a child item for this class
         with dpg.group(parent="class_list", tag=f"grp_{cls}"):
-            dpg.add_text(f"{cls}:", bullet=True)
-            dpg.add_button(label="Collect FFT Window", callback=lambda s,a,u,cls=cls: collect_fft(cls))
-            dpg.add_button(label="Clear Data", callback=lambda s,a,u,cls=cls: clear_class(cls))
+            dpg.add_text(f"{cls}: 0", bullet=True, tag=f"cls_{cls}")
+            dpg.add_button(label="Select", callback=lambda s,a,u: select_class_callback(cls))
+            dpg.add_button(label="Clear Data", callback=lambda s,a,u: clear_class(cls))
+            dpg.add_button(label="Delete Class", callback=lambda s,a,u: delete_class(cls))
             dpg.add_separator()
     dpg.set_value("class_input", "")
 
+def switch_mode(selected):
+    if selected == "Train":
+        dpg.configure_item("train_group", show=True)
+        dpg.configure_item("infer_group", show=False)
+        dpg.configure_item("mode", default_value="Train")
+    else:
+        dpg.configure_item("train_group", show=False)
+        dpg.configure_item("infer_group", show=True)
+        dpg.configure_item("mode", default_value="Infer")
 
-def collect_fft(cls):
-    # _, fft_vals, _, _ = ear.get_audio_features()
-    _, fft_vals = make_dummy_spectrum()
-    collected_data[cls].append(fft_vals.copy())
-    print(f"Collected window for class '{cls}', total={len(collected_data[cls])}")
-
+def record_data_callback(s, a, u):
+    if record_val is None:
+        dpg.configure_item("record_toggle", default_value=False)
+        return
+    global recording_on
+    recording_on = True if a else False
+    
+def select_class_callback(cls):
+    global record_val
+    record_val = cls
+    
+    dpg.configure_item("record_toggle", default_value=False)
+    dpg.configure_item("selected_class", default_value=f"Selected: {record_val}")
 
 def clear_class(cls):
-    collected_data[cls].clear()
-    print(f"Cleared data for class '{cls}'")
+    if cls in collected_data:
+        collected_data[cls] = []
+        dpg.configure_item(f"cls_{record_val}", default_value=f"{record_val}: {len(collected_data[record_val])}")
 
-
-def on_train():
-    # Build flat lists
-    data = []
-    labels = []
-    for cls, windows in collected_data.items():
-        data.extend(windows)
-        labels.extend([cls]*len(windows))
-    # Open save dialog
-    dpg.show_item("save_dialog")
-    # Store pending train args
-    dpg.set_item_user_data("save_dialog", (data, labels))
-
-
-def do_save(path):
-    data, labels = dpg.get_item_user_data("save_dialog")
-    train_model(data, labels, path)
-    print(f"Model trained and saved to {path}")
-    dpg.hide_item("save_dialog")
-    # switch to infer mode
-    dpg.set_value(mode_combo, "Infer")
+def delete_class(cls):
+    if cls in collected_data:
+        collected_data.pop(cls, None)
+        dpg.delete_item(f"grp_{cls}")
+        
+def train_model_callback():
+    training(collected_data)
     switch_mode("Infer")
 
+def load_model_callback():
+    dpg.configure_item("load_model_dialog", show=True)
 
-def on_load_model():
-    dpg.show_item("load_dialog")
+def save_model_callback():
+    dpg.configure_item("save_model_dialog", show=True)
 
+dpg.create_context()
+dpg.create_viewport(title="FFT Trainer", width=800, height=600)
 
-def do_load(path):
-    global model
-    model = load_model(path)
-    print(f"Model loaded from {path}")
-    dpg.hide_item("load_dialog")
+with dpg.viewport_menu_bar():
+    with dpg.menu(label="Options"):
+        dpg.add_combo(items=device_list,
+                        label="Device",
+                        tag="device_combo",
+                        default_value=default_device,
+                        callback=device_select_callback,
+                        width=300) # TODO: ADD A CALLBACK
 
-# -----------------------------------------------------------------------------
-# Render/update loop
+with dpg.window(label="FFT Spectrum", tag="fft_vis", no_move=True, no_resize=True, no_collapse=True):
+    dpg.add_text("Real-time FFT Signal", bullet=True)
+    plot = dpg.add_plot(label="FFT Plot", height=-1, width=-1)
+    x_axis = dpg.add_plot_axis(dpg.mvXAxis, parent=plot, label="Frequency (Hz)")
+    y_axis = dpg.add_plot_axis(dpg.mvYAxis, parent=plot, label="Amplitude")
+    x_series = dpg.add_line_series([], [], label="FFT", parent=y_axis, tag="fft_series")
 
+with dpg.window(label="Controls", tag="ctrl_win", no_move=True, no_resize=True, no_collapse=True):
+    # Mode switch
+    with dpg.group(horizontal=True):
+        dpg.add_text("Mode:")
+        mode_combo = dpg.add_combo(items=["Train", "Infer"], default_value="Train", callback=lambda s,a,u: switch_mode(a), tag="mode")
+    dpg.add_separator()
+    
+    # Train UI container
+    with dpg.group(tag="train_group"):
+        with dpg.group(horizontal=True):
+            dpg.add_text("Class Name:")
+            dpg.add_input_text(label="Class name", tag="class_input")
+        dpg.add_button(label="Add Class", callback=lambda: add_class(), tag="btn_add_class")
+        dpg.add_separator()
+        dpg.add_text("Classes & Data:", bullet=True)
+        dpg.add_child_window(width=-1, height=200, tag="class_list")
+        dpg.add_separator()
+        # dpg.add_button(label="Train Model", callback=lambda: on_train(), tag="btn_train")
+        dpg.add_text(f"Selected: {record_val}", tag="selected_class")
+        dpg.add_checkbox(label="Record data", tag="record_toggle", default_value=False,
+                         callback=record_data_callback)
+        dpg.add_button(label="Train Model", tag="train_button", callback=train_model_callback)
+
+    # Infer UI container
+    with dpg.group(tag="infer_group", show=False):
+        with dpg.group(horizontal=True):
+            dpg.add_button(label="Load Model", callback=lambda: load_model_callback(), tag="btn_load")
+            dpg.add_button(label="Save Model", callback=lambda: save_model_callback(), tag="btn_save")
+        dpg.add_text("Prediction:", bullet=True)
+        dpg.add_text("---", tag="pred_text")
+    
+dpg.add_file_dialog(show=False, label="Load Model", tag="load_model_dialog", width=700 ,height=400)
+dpg.add_file_extension(".*", label="Save Model", parent="load_model_dialog")
+    
+dpg.add_file_dialog(show=False, tag="save_model_dialog", width=700 ,height=400)
+dpg.add_file_extension(".*", parent="save_model_dialog")
+
+# Every time the viewport changes, recompute each window’s pos & size
+def on_vp_resize(_, __):
+    W = dpg.get_viewport_width()
+    H = dpg.get_viewport_height()
+    w2 = int(W * 0.7)
+    h_top = int(H)
+    h_bot = H - h_top
+
+    # Top row
+    dpg.configure_item("fft_vis", pos=(0,      0),       width=w2, height=h_top)
+    dpg.configure_item("ctrl_win", pos=(w2,     0),       width=w2, height=h_top)
+    # Bottom row
+    # dpg.configure_item("win_bl", pos=(0,      h_top),   width=w2, height=h_bot)
+    # dpg.configure_item("win_br", pos=(w2,     h_top),   width=w2, height=h_bot)
+    
 def update_spectrum():
     # get FFT
-    # freqs, amps, _, _ = ear.get_audio_features()
-    freqs, amps = make_dummy_spectrum()
+    freqs, amps = get_audio_features(ear)
     # update plot
-    y = amps / (amps.max() or 1)
-    dpg.set_value(x_series, [list(freqs), list(y)])
+    # y = amps / (amps.max() or 1)
+    dpg.set_value(x_series, [list(freqs), list(amps)])
 
-    if dpg.get_value("mode") == "Infer" and model is not None:
-        pred = predict_model(model, amps)
-        dpg.set_value("pred_text", pred)
+def record_data():
+    if not recording_on or record_val is None:
+        return
+    
+    else:
+        if record_val not in collected_data:
+            collected_data[record_val] = []
+        
+        global ear
+        freqs, amps = get_audio_features(ear)
+        collected_data[record_val].append((freqs, amps))
+        dpg.configure_item(f"cls_{record_val}", default_value=f"{record_val}: {len(collected_data[record_val])}")
+    
+def frame_callback():
+    record_data()
+    update_spectrum()
+    
+    dpg.set_frame_callback(dpg.get_frame_count()+1, frame_callback)
+    
+    
+dpg.set_viewport_resize_callback(on_vp_resize)
+dpg.set_frame_callback(1, frame_callback)
+on_vp_resize(None, None)  # initialize
 
-# Start GUI
 dpg.setup_dearpygui()
 dpg.show_viewport()
-
-
-try:
-    while dpg.is_dearpygui_running():
-        update_spectrum()            # push your FFT→plot updates
-        dpg.render_dearpygui_frame() # draw one frame
-        console_print("test")
-finally:
-    cleanup()      # stops audio, calls dpg.stop_dearpygui()
-    dpg.destroy_context()
+dpg.start_dearpygui()
+dpg.destroy_context()
