@@ -69,7 +69,7 @@ Please report any issues through Github. If you'd like to contribute, please for
 
 # Acknowledgements
 
-This project was created as a part of UCLA's EC ENGR 239AS Designing Interactive Systems and the Los Angeles Computing Circle's curriculum.
+This project was created as a part of UCLA's EC ENGR 209AS Designing Interactive Systems and the Los Angeles Computing Circle's curriculum.
 
 # License
 
