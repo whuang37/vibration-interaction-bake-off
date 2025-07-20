@@ -67,5 +67,10 @@ Users do not ever have to interact with any GUI code. Instead, [models.py](model
 
 Please report any issues through Github. If you'd like to contribute, please fork and open a pull request.
 
+# Acknowledgements
+
+This project was created as a part of UCLA's EC ENGR 239AS Designing Interactive Systems and the Los Angeles Computing Circle's curriculum. 
+
 # License
+
 This project is licensed under the MIT License.
