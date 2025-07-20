@@ -1,6 +1,6 @@
 # Vibration Based Interactions Project
 
-This repository contains the code for a vibration based interaction project. This implements a realtime GUI interface for audio signals to feed through Fast Fourier Transform and be visualized. Users can then use this data to train a machine learning model of their choice and check the predictions.
+This repository contains the code for a vibration based interaction project. This implements a realtime GUI interface for audio signals to feed through Fast Fourier Transform and be visualized. Users can then use this data to train a machine learning model of their choice and check the predictions. Users are expected to use a piezo to detect vibrations which can then be fed through audio signals and read in this program.
 
 ## Installation
 
