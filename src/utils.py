@@ -67,7 +67,6 @@ def getFFT(data, rate, chunk_size, log_scale=False):
 
     return FFT
 
-
 def round_up_to_even(f):
     return int(math.ceil(f / 2.) * 2)
 
