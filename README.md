@@ -61,7 +61,7 @@ Upon selecting the "Infer" model, users will see the top gui. Here users can sav
 
 # Modifying
 
-Users do not ever have to interact with any GUI code. Instead, [models.py](models.py) contains all the necessary interfaces to implement and train your own models. See the file for more details on each function and how to modify and use them.
+Users do not ever have to interact with any GUI code. Instead, [```models.py```](models.py) contains all the necessary interfaces to implement and train your own models. See the file for more details on each function and how to modify and use them.
 
 # Contributing
 
