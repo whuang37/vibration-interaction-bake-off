@@ -338,7 +338,7 @@ with dpg.window(
     # Training UI group
     with dpg.group(tag="train_group"):
         with dpg.group(horizontal=True):
-            dpg.add_input_text(tag="class_input", width=-1)
+            dpg.add_input_text(tag="class_input")
             dpg.add_button(label="Add Class", callback=add_class_callback)
         dpg.add_separator()
         dpg.add_text("Classes & Data:", bullet=True)
