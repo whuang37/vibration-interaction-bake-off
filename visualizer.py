@@ -285,10 +285,11 @@ def frame_callback():
 # Resize handler
 def on_vp_resize(s, a):
     W, H = dpg.get_viewport_width(), dpg.get_viewport_height()
-    w2 = int(W * 0.7)
+    w2 = int(W * .95 * 0.7)
+    h2 = .95 * H
     # Position and size windows dynamically
-    dpg.configure_item("fft_vis", pos=(0, 0), width=w2, height=H)
-    dpg.configure_item("ctrl_win", pos=(w2, 0), width=W - w2, height=H)
+    dpg.configure_item("fft_vis", pos=(0, 0), width=w2, height=h2)
+    dpg.configure_item("ctrl_win", pos=(w2, 0), width=W - w2, height=h2)
 
 
 # ——— UI Construction ———
@@ -337,7 +338,7 @@ with dpg.window(
     # Training UI group
     with dpg.group(tag="train_group"):
         with dpg.group(horizontal=True):
-            dpg.add_input_text(tag="class_input")
+            dpg.add_input_text(tag="class_input", width=-1)
             dpg.add_button(label="Add Class", callback=add_class_callback)
         dpg.add_separator()
         dpg.add_text("Classes & Data:", bullet=True)

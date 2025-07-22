@@ -137,14 +137,13 @@ class StreamAnalyzer:
         self.strongest_frequency = self.fftx[np.argmax(self.fft)]
 
         #ToDo: replace this for-loop with pure numpy code
-        # for bin_index in range(self.n_frequency_bins):
-        #     self.frequency_bin_energies[bin_index] = np.mean(self.fft[self.fftx_indices_per_bin[bin_index]])
+        for bin_index in range(self.n_frequency_bins):
+            self.frequency_bin_energies[bin_index] = np.mean(self.fft[self.fftx_indices_per_bin[bin_index]])
 
-        sums   = np.bincount(self.fftx_bin_indices, weights=self.fft,
-                     minlength=self.n_frequency_bins)
-        counts = np.bincount(self.fftx_bin_indices,
-                     minlength=self.n_frequency_bins)
-        self.frequency_bin_energies = sums / counts
+        #Beat detection ToDo:
+        #https://www.parallelcube.com/2018/03/30/beat-detection-algorithm/
+        #https://github.com/shunfu/python-beat-detector
+        #https://pypi.org/project/vamp/
 
         return
 
