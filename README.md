@@ -4,14 +4,14 @@ This repository contains the code for a vibration based interaction project. Thi
 
 ## Installation
 
-### Macs
+### Mac Setup
 For Mac users, you will first need to install PortAudio. Do so using [brew](https://brew.sh/). To install port audio use
 
 ```bash
 brew install portaudio
 ```
 
-
+## System Setup
 First clone this repository using
 
 ```bash
